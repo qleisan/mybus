@@ -18,7 +18,7 @@ def departures_handler():
         location = req.get('queryResult').get('parameters').get('current-location')
 
         if location == 'home':
-            return respond("Oh so you are home now. Well, you better hurry!")
+            return respond("This seems to work. Congrats Layf")
         elif location == 'work':
             return respond("At work? Well, are you sure it's time to leave already?")
         else:
