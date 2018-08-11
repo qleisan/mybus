@@ -28,6 +28,9 @@ def departures_handler():
         print(e)
         return respond("Sorry, an error occurred. Please check the server logs.")
 
+@app.route("/")
+def hello():
+    return "simple test"
 
 def main():
     app.run()
