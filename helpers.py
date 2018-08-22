@@ -1,9 +1,3 @@
-# NTP stuff
-import socket
-from socket import AF_INET, SOCK_DGRAM
-import time
-import struct
-
 # vasttrafik stuff
 import base64
 import requests
@@ -12,53 +6,21 @@ import json
 # other
 import platform
 import logging
+from datetime import datetime
+from pytz import timezone
+
 
 # defines
-timeoutNTP = 1.0  # How much to wait for the NTP server's response in seconds
 TOKEN_URL = 'https://api.vasttrafik.se/token'
 API_BASE_URL = 'https://api.vasttrafik.se/bin/rest.exe/v2'
 
 
-# Fetches the time from NTP server.
-# Source: http://blog.mattcrampton.com/post/88291892461/query-an-ntp-server-from-python
-def getNTPTime(host="pool.ntp.org"):
-    port = 123
-    buf = 1024
-    address = (host, port)
-    msg = '\x1b' + 47 * '\0'
-
-    # Reference time (in seconds since 1900-01-01 00:00:00)
-    TIME1970 = 2208988800  # 1970-01-01 00:00:00
-
-    # connect to server
-    client = socket.socket(AF_INET, SOCK_DGRAM)
-    client.settimeout(timeoutNTP)  # Do not wait too much to receive a response from the NTP server
-    # TODO: fixme!
-    # print("NTP disabled for now, code doesn't work on pythonanywhere")
-    # '''
-    try:
-        client.sendto(bytes(msg, "UTF-8"), address)
-        msg, address = client.recvfrom(buf)
-        t = struct.unpack("!12I", msg)[10]
-        t -= TIME1970
-    except:
-        print("WARNING: Could not fetch time from NTP server! Using system time instead.")
-        t = time.time()  # Fall back to the system time when no response from ntp server
-    #'''
-    # TODO - temporary solution
-    # t = time.time()
-    d = time.strptime(time.ctime(t), "%a %b %d %H:%M:%S %Y")
-    return time.strftime("%Y-%m-%d", d), time.strftime("%H:%M", d)
-
-
 def getTime():
-    if hwplatform == "cloud":
-        pass
-    else:
-        pass
-
-
-# --------------------------------------------------------------------------------------------------------
+    print("datetime:")
+    swe_time = datetime.now(timezone('Europe/Stockholm'))
+    dr2 = swe_time.strftime('%Y-%m-%d'), swe_time.strftime('%H:%M')
+    print(dr2)
+    return dr2
 
 
 def fetchtoken(key, secret):
@@ -71,9 +33,6 @@ def fetchtoken(key, secret):
     response = requests.post(TOKEN_URL, data=data, headers=headers)
     obj = json.loads(response.content.decode('UTF-8'))
     return obj['access_token']
-
-
-# --------------------------------------------------------------------------------------------------------
 
 
 def getHWplatform():
@@ -89,3 +48,6 @@ def getHWplatform():
     else:
         logger.critical("Running on unknown platform. Aborting")
         exit(1)
+
+
+print("XLEISAN - helpers outside scope")

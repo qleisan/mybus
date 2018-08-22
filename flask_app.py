@@ -56,7 +56,7 @@ def departures_handler():
         location = req.get('queryResult').get('parameters').get('current-location')
 
         if location == 'home':
-            return respond("This seems to work. Congrats Layf")
+            return respond("Hardcoded test - next bus is 19 in 5 minutes")
         elif location == 'work':
             return respond("At work? Well, are you sure it's time to leave already?")
         else:
@@ -70,13 +70,14 @@ def departures_handler():
 @app.route("/")
 def hello():
     # return "simple test"
+    print("XLEISAN ----------------------------------")
     getmybus()
     return buf
 
 
 def getmybus():
     # Get the current time and date from an NTP server as the host might not have an RTC
-    (currentDate, currentTime) = helpers.getNTPTime()
+    (currentDate, currentTime) = helpers.getTime()
     print(currentDate, currentTime)
 
     kandidatlista = []
@@ -115,6 +116,7 @@ def getmybus():
         str = avgang['rtTime'] + ' (' + avgang['time'] + ') ' + avgang['rtDate'] + ' ' + \
               avgang['name'] + ' ' + avgang['track'] + ' ' + avgang['direction']
         logger.info(str)
+        logger.info("is this written to error log also?")
         buf = buf + str + '</BR>'
 
 
@@ -136,6 +138,8 @@ def main():
 
     logger.setLevel(logging.INFO)
     logger.info("Application staring")
+    (currentDate, currentTime) = helpers.getTime()
+    logger.info("Timezone and Daylightsavings adjusted date/time: {} {}".format(currentDate, currentTime))
 
     hwplatform = helpers.getHWplatform()
 
@@ -158,5 +162,10 @@ def main():
         # cloud starts flask automatically
 
 
-if __name__ == '__main__':
+print("XLEISAN - outer scope")
+print("__name__ = {}".format(__name__))
+
+# if __name__ == '__main__':
+if True:
+    print("XLEISAN - Calling main")
     main()
