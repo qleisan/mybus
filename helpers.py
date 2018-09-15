@@ -14,13 +14,42 @@ from pytz import timezone
 TOKEN_URL = 'https://api.vasttrafik.se/token'
 API_BASE_URL = 'https://api.vasttrafik.se/bin/rest.exe/v2'
 
+'''
+- need date/time with seconds for webpage header (timezone/daylight compensated)
+- need to calculate timediff in minutes between date/time in yymmdd-HH:MM format
+'''
 
-def getTime():
-    print("datetime:")
+
+def getTimeNow_TZD_compensated():
+    # rename: TZ = TimeZone, D = daylight...
     swe_time = datetime.now(timezone('Europe/Stockholm'))
-    dr2 = swe_time.strftime('%Y-%m-%d'), swe_time.strftime('%H:%M')
-    print(dr2)
-    return dr2
+    # old code: dr2 = swe_time.strftime('%Y-%m-%d'), swe_time.strftime('%H:%M:%S')
+    return swe_time.year, swe_time.month, swe_time.day, swe_time.hour, swe_time.minute, swe_time.second
+
+
+def tuple2string(t):
+    # return "{}-{}-{} {}:{}:{}".format(*tuple)
+    return "{0:04d}-{1:02d}-{2:02d} {3:02d}:{4:02d}:{5:02d}".format(t[0], t[1], t[2], t[3], t[4], t[5])
+
+
+def string2tuple(s):
+    a = str(s).split(' ')
+    return (a[0], a[1][:-3])
+
+
+def getminutesdiff(tuple, date, time):
+    d1 = datetime(*tuple)
+    print("d1 = '{}'".format(d1))
+    d1 = datetime(d1.year, d1.month, d1.day, d1.hour, d1.minute)
+    print("seconds set to zero. d1 = '{}'".format(d1))
+    stringtoparse = date + '|' + time
+    print(stringtoparse)
+    d2 = datetime.strptime(stringtoparse, "%Y-%m-%d|%H:%M")
+    print("d2 = '{}'".format(d2))
+    diff = d2-d1
+    print(diff)
+    print(diff.seconds//60)
+    return diff.seconds//60
 
 
 def fetchtoken(key, secret):
@@ -48,6 +77,5 @@ def getHWplatform():
     else:
         logger.critical("Running on unknown platform. Aborting")
         exit(1)
-
 
 print("XLEISAN - helpers outside scope")

@@ -15,7 +15,41 @@ from flask import Flask, request, make_response, jsonify
 import logging.handlers
 import sys
 
+from pprint import pprint
+from datetime import datetime
+
 buf = ''
+
+mypagetemplate = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="10">
+    <title>WIP</title>
+    <link rel='stylesheet' href='style.css' type='text/css' >
+</head>
+<body>
+<h1 style="color:black;font-size:400%;">{} {}</h1>
+<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
+<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
+<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
+<!--
+<p>12:03+2</p>
+<div style="font-size:72">Score</div>
+-->
+</body>
+</html>
+"""
+
+
+def mypage(a, b, l):
+    print(a,b)
+    return mypagetemplate.format(a, b,
+                                 l[0][0], l[0][1],
+                                 l[1][0], l[1][1],
+                                 l[2][0], l[2][1])
+
 
 
 BERGSPRANGAREGATAN = '9022014001390001'
@@ -69,17 +103,48 @@ def departures_handler():
 
 @app.route("/")
 def hello():
-    # return "simple test"
-    print("XLEISAN ----------------------------------")
-    getmybus()
+    global buf
+    print("----------------------------------")
+    t = helpers.getTimeNow_TZD_compensated()
+    tstr = helpers.tuple2string(t)
+    print(tstr)
+    (cD, cT) = helpers.string2tuple(tstr)
+    kandidatlista = getmybus(cD, cT)
+
+    buf = '<h1>{}</h1>\n'.format(tstr)
+    buf = buf + '<meta http-equiv="refresh" content="10">'
+    for avgang in kandidatlista:
+        str = avgang['rtTime'] + ' (' + avgang['time'] + ') ' + avgang['rtDate'] + ' ' + \
+              avgang['name'] + ' ' + avgang['track'] + ' ' + avgang['direction']
+        logger.info(str)
+        logger.info("is this written to error log also?")
+        buf = buf + str + '</BR>'
     return buf
 
+@app.route("/wip")
+def wip():
+    print("WIP----------------------------------")
+    t = helpers.getTimeNow_TZD_compensated()
+    tstr = helpers.tuple2string(t)
+    print(tstr)
+    (cD, cT) = helpers.string2tuple(tstr)
+    kandidatlista = getmybus(cD, cT)
 
-def getmybus():
-    # Get the current time and date from an NTP server as the host might not have an RTC
-    (currentDate, currentTime) = helpers.getTime()
-    print(currentDate, currentTime)
+    # pprint(kandidatlista)
+    l = list()
+    for idx, avgang in enumerate(kandidatlista):
+        print(idx, avgang['rtTime'])
+        result = helpers.getminutesdiff(t, avgang['rtDate'], avgang['rtTime'])
+        l.append((avgang['sname'], result))
+        if idx == 2:
+            break
+    print("++++++++++++++++++++++++++++++++++++++++")
+    pprint(l)
 
+    return mypage(cD, cT, l)
+
+
+def getmybus(currentDate, currentTime):
     kandidatlista = []
     debug = False
 
@@ -110,14 +175,7 @@ def getmybus():
             avgang['rtDate'] = avgang['date']
 
     kandidatlista.sort(key=itemgetter('rtDate', 'rtTime'))
-    global buf
-    buf = ''
-    for avgang in kandidatlista:
-        str = avgang['rtTime'] + ' (' + avgang['time'] + ') ' + avgang['rtDate'] + ' ' + \
-              avgang['name'] + ' ' + avgang['track'] + ' ' + avgang['direction']
-        logger.info(str)
-        logger.info("is this written to error log also?")
-        buf = buf + str + '</BR>'
+    return kandidatlista
 
 
 def handle_exception(exc_type, exc_value, exc_traceback):
@@ -138,8 +196,8 @@ def main():
 
     logger.setLevel(logging.INFO)
     logger.info("Application staring")
-    (currentDate, currentTime) = helpers.getTime()
-    logger.info("Timezone and Daylightsavings adjusted date/time: {} {}".format(currentDate, currentTime))
+    #(currentDate, currentTime) = helpers.getTime()
+    #logger.info("Timezone and Daylightsavings adjusted date/time: {} {}".format(currentDate, currentTime))
 
     hwplatform = helpers.getHWplatform()
 
@@ -149,10 +207,11 @@ def main():
 
     if hwplatform == 'pc':
         logger.info("Running on pc")
-        # app.run()
-        # app.run(debug=True)
-        print("Flask server not run now now during development")
-        getmybus()
+        app.run(host='0.0.0.0')  # publicly available
+        ## app.run(debug=True)
+        print("Flask server not run now during development")
+        # print(wip())    # print webpage
+
     elif hwplatform == 'rpi':
         # my RPI doesn't support HTTPS now
         logger.info("Running on rpi")
