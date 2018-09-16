@@ -10,6 +10,8 @@ from datetime import datetime
 from pytz import timezone
 
 
+from pprint import pprint
+
 # defines
 TOKEN_URL = 'https://api.vasttrafik.se/token'
 API_BASE_URL = 'https://api.vasttrafik.se/bin/rest.exe/v2'
@@ -39,16 +41,16 @@ def string2tuple(s):
 
 def getminutesdiff(tuple, date, time):
     d1 = datetime(*tuple)
-    print("d1 = '{}'".format(d1))
+    # print("d1 = '{}'".format(d1))
     d1 = datetime(d1.year, d1.month, d1.day, d1.hour, d1.minute)
-    print("seconds set to zero. d1 = '{}'".format(d1))
+    # print("seconds set to zero. d1 = '{}'".format(d1))
     stringtoparse = date + '|' + time
-    print(stringtoparse)
+    # print(stringtoparse)
     d2 = datetime.strptime(stringtoparse, "%Y-%m-%d|%H:%M")
-    print("d2 = '{}'".format(d2))
+    # print("d2 = '{}'".format(d2))
     diff = d2-d1
-    print(diff)
-    print(diff.seconds//60)
+    # print(diff)
+    # print(diff.seconds//60)
     return diff.seconds//60
 
 
@@ -61,6 +63,7 @@ def fetchtoken(key, secret):
 
     response = requests.post(TOKEN_URL, data=data, headers=headers)
     obj = json.loads(response.content.decode('UTF-8'))
+    pprint(obj)
     return obj['access_token']
 
 

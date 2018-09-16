@@ -47,8 +47,3 @@ Improvements
 	6 <- nu kommer svaret
 
 
-Goal for next commit (that should be pushed and tried from PA)
-- show time and next 3 busses
-- basic cleanup of code
-- app should support two different URL:s one for the radiator and one for "long list" AND act as "google actions client"
-

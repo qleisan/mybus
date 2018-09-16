@@ -16,7 +16,6 @@ import logging.handlers
 import sys
 
 from pprint import pprint
-from datetime import datetime
 
 buf = ''
 
@@ -27,10 +26,9 @@ mypagetemplate = """
     <meta charset="UTF-8">
     <meta http-equiv="refresh" content="10">
     <title>WIP</title>
-    <link rel='stylesheet' href='style.css' type='text/css' >
 </head>
 <body>
-<h1 style="color:black;font-size:400%;">{} {}</h1>
+<h1 style="color:black;font-size:400%;">{}</h1>
 <h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
 <h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
 <h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
@@ -43,9 +41,8 @@ mypagetemplate = """
 """
 
 
-def mypage(a, b, l):
-    print(a,b)
-    return mypagetemplate.format(a, b,
+def mypage(a, l):
+    return mypagetemplate.format(a,
                                  l[0][0], l[0][1],
                                  l[1][0], l[1][1],
                                  l[2][0], l[2][1])
@@ -72,9 +69,22 @@ def get_departure_list(id_str, currentDate, currentTime):
                        datetimestr + '&format=json', headers=headers)
 
     if res.status_code == 200:
+        # pprint(res.text)
+        # TODO must make this robust....
         return json.loads(res.text)['DepartureBoard']['Departure']
     else:
-        raise Exception('Error: ' + str(res.status_code) + str(res.content))
+        logger.warning("res.status_code = '{}'".format(res.status_code))
+        token = helpers.fetchtoken(CONSUMER_KEY, CONSUMER_SECRET)
+        headers = {
+            'Authorization': 'Bearer ' + token
+        }
+        res = requests.get('https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=' + id_str +
+                           datetimestr + '&format=json', headers=headers)
+        if res.status_code == 200:
+            logger.info("worked this time")
+            return json.loads(res.text)['DepartureBoard']['Departure']
+        else:
+            raise Exception('Error: ' + str(res.status_code) + '|' + str(res.content))
 
 
 def respond(fullfilment):
@@ -141,7 +151,7 @@ def wip():
     print("++++++++++++++++++++++++++++++++++++++++")
     pprint(l)
 
-    return mypage(cD, cT, l)
+    return mypage(tstr, l)
 
 
 def getmybus(currentDate, currentTime):
