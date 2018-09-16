@@ -1,7 +1,3 @@
-#!/usr/bin/python3
-# -*- coding:utf8 -*-
-
-# TODO: automate this - if no file exist create one and inform user to fill in the blanks
 # create a config.py file (not included in repo since a secret...) with
 # CONSUMER_KEY = '<KEY>'
 # CONSUMER_SECRET = '<SECRET>'
@@ -19,35 +15,6 @@ from pprint import pprint
 
 buf = ''
 
-mypagetemplate = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="10">
-    <title>WIP</title>
-</head>
-<body>
-<h1 style="color:black;font-size:400%;">{}</h1>
-<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
-<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
-<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
-<!--
-<p>12:03+2</p>
-<div style="font-size:72">Score</div>
--->
-</body>
-</html>
-"""
-
-
-def mypage(a, l):
-    return mypagetemplate.format(a,
-                                 l[0][0], l[0][1],
-                                 l[1][0], l[1][1],
-                                 l[2][0], l[2][1])
-
-
 
 BERGSPRANGAREGATAN = '9022014001390001'
 ENGDAHLSGATAN = '9022014002230002'
@@ -57,35 +24,7 @@ LOGFILE = 'mybus.log'
 app = Flask("My-Local-Traffic-Planner")
 
 
-def get_departure_list(id_str, currentDate, currentTime):
-    global token
-    headers = {
-        'Authorization': 'Bearer ' + token
-    }
-
-    datetimestr = '&date=' + currentDate.replace('-','') + '&time={}%3A{}'.format(*currentTime.split(':'))
-
-    res = requests.get('https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=' + id_str +
-                       datetimestr + '&format=json', headers=headers)
-
-    if res.status_code == 200:
-        # pprint(res.text)
-        # TODO must make this robust....
-        return json.loads(res.text)['DepartureBoard']['Departure']
-    else:
-        logger.warning("res.status_code = '{}'".format(res.status_code))
-        token = helpers.fetchtoken(CONSUMER_KEY, CONSUMER_SECRET)
-        headers = {
-            'Authorization': 'Bearer ' + token
-        }
-        res = requests.get('https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=' + id_str +
-                           datetimestr + '&format=json', headers=headers)
-        if res.status_code == 200:
-            logger.info("worked this time")
-            return json.loads(res.text)['DepartureBoard']['Departure']
-        else:
-            raise Exception('Error: ' + str(res.status_code) + '|' + str(res.content))
-
+###################### code for google assistant #######################
 
 def respond(fullfilment):
     return make_response(jsonify({'fulfillmentText': fullfilment}))
@@ -110,9 +49,11 @@ def departures_handler():
         print(e)
         return respond("Sorry, an error occurred. Please check the server logs.")
 
+#########################################################################
 
+###################### Flask #######################
 @app.route("/")
-def hello():
+def longlist():
     global buf
     print("----------------------------------")
     t = helpers.getTimeNow_TZD_compensated()
@@ -148,30 +89,67 @@ def wip():
         l.append((avgang['sname'], result))
         if idx == 2:
             break
-    print("++++++++++++++++++++++++++++++++++++++++")
     pprint(l)
+    return helpers.mypage(tstr, l)
+###################################################
 
-    return mypage(tstr, l)
+
+def requestcall(id_str, currentDate, currentTime):
+    global token
+    headers = {
+        'Authorization': 'Bearer ' + token
+    }
+
+    datetimestr = '&date=' + currentDate.replace('-','') + '&time={}%3A{}'.format(*currentTime.split(':'))
+
+    res = requests.get('https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=' + id_str +
+                       datetimestr + '&format=json', headers=headers)
+    return res
+
+
+def get_departure_list(id_str, currentDate, currentTime):
+    global token
+    res = requestcall(id_str, currentDate, currentTime)
+    if res.status_code == 200:
+        # pprint(res.text)
+        # TODO: Improve! This is a workaround for observed communication error
+        '''
+        ('{"DepartureBoard":{  '
+         '"noNamespaceSchemaLocation":"http://api.vasttrafik.se/v1/.xsd",  "error":"S1 '
+         'instableCommunication",  "errorText":"The desired connection to the server '
+         'could not be established or was not stable.",  "$":""  }}')	
+        '''
+        # TODO: fixme!
+        if 'Departure' in json.loads(res.text)['DepartureBoard']:
+            return json.loads(res.text)['DepartureBoard']['Departure']
+        else:
+            pprint(json.loads(res.text)['DepartureBoard'])
+            logger.critical("SERVER ERROR FOUND (DEBUG)")
+            logger.critical(json.loads(res.text)['DepartureBoard'])
+            return []
+    else:
+        logger.warning("res.status_code = '{}'".format(res.status_code))
+        token = helpers.fetchtoken(CONSUMER_KEY, CONSUMER_SECRET)
+        res = requestcall(id_str, currentDate, currentTime)
+        if res.status_code == 200:
+            logger.info("worked this time")
+            # TODO: this call might cause the same problem as above (but less frequent)
+            return json.loads(res.text)['DepartureBoard']['Departure']
+        else:
+            raise Exception('Error: ' + str(res.status_code) + '|' + str(res.content))
 
 
 def getmybus(currentDate, currentTime):
     kandidatlista = []
-    debug = False
+    lista = get_departure_list(BERGSPRANGAREGATAN, currentDate, currentTime)
+    for avgang in lista:
+        if (avgang['sname'] == '18' or avgang['sname'] == '52') and avgang['track'] == 'A':
+            kandidatlista.append(avgang)
 
-    if debug  == True:
-        kandidatlista = json.load(open('kandidatlista.json'))
-        #pprint.pprint(kandidatlista)
-        #quit(0)
-    else:
-        lista = get_departure_list(BERGSPRANGAREGATAN, currentDate, currentTime)
-        for avgang in lista:
-            if (avgang['sname'] == '18' or avgang['sname'] == '52') and avgang['track'] == 'A':
-                kandidatlista.append(avgang)
-
-        lista = get_departure_list(ENGDAHLSGATAN, currentDate, currentTime)
-        for avgang in lista:
-            if avgang['sname'] == '19' and avgang['track'] == 'A':
-                kandidatlista.append(avgang)
+    lista = get_departure_list(ENGDAHLSGATAN, currentDate, currentTime)
+    for avgang in lista:
+        if avgang['sname'] == '19' and avgang['track'] == 'A':
+            kandidatlista.append(avgang)
 
     # with open('kandidatlista.json', 'w') as outfile:
     #     json.dump(kandidatlista, outfile)
@@ -188,9 +166,6 @@ def getmybus(currentDate, currentTime):
     return kandidatlista
 
 
-def handle_exception(exc_type, exc_value, exc_traceback):
-    logger.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
-    print("Uncaught exception - check log")
 
 
 def main():
@@ -198,17 +173,14 @@ def main():
                         level=logging.DEBUG,
                         format="%(asctime)s %(levelname)s %(module)s %(lineno)d - %(message)s",
                         filemode='w')
-    global logger   # todo: consider removing global and using getlogger() in evecy function
+    global logger   # todo: consider removing global and using getlogger() in every function
     logger = logging.getLogger()
     print("Logging to file '{}'".format(LOGFILE))
     # make sure unhandled exceptions are logged
-    sys.excepthook = handle_exception
+    sys.excepthook = helpers.handle_exception
 
     logger.setLevel(logging.INFO)
     logger.info("Application staring")
-    #(currentDate, currentTime) = helpers.getTime()
-    #logger.info("Timezone and Daylightsavings adjusted date/time: {} {}".format(currentDate, currentTime))
-
     hwplatform = helpers.getHWplatform()
 
     global token # todo: consider refactoring
@@ -217,10 +189,13 @@ def main():
 
     if hwplatform == 'pc':
         logger.info("Running on pc")
+        # app.run() i a blocking call!
         app.run(host='0.0.0.0')  # publicly available
         ## app.run(debug=True)
+
+        # will only get here if app.run() is commented out
         print("Flask server not run now during development")
-        # print(wip())    # print webpage
+        print(wip())    # print webpage
 
     elif hwplatform == 'rpi':
         # my RPI doesn't support HTTPS now
@@ -230,11 +205,9 @@ def main():
         logger.info("Running on cloud")
         # cloud starts flask automatically
 
-
+# debugging info
 print("XLEISAN - outer scope")
 print("__name__ = {}".format(__name__))
-
 # if __name__ == '__main__':
 if True:
-    print("XLEISAN - Calling main")
     main()

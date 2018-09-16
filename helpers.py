@@ -9,12 +9,49 @@ import logging
 from datetime import datetime
 from pytz import timezone
 
-
 from pprint import pprint
 
 # defines
 TOKEN_URL = 'https://api.vasttrafik.se/token'
 API_BASE_URL = 'https://api.vasttrafik.se/bin/rest.exe/v2'
+
+logger = logging.getLogger(__name__)
+
+
+mypagetemplate = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="10">
+    <title>WIP</title>
+</head>
+<body>
+<h1 style="color:black;font-size:400%;">{}</h1>
+<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
+<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
+<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
+<!--
+<p>12:03+2</p>
+<div style="font-size:72">Score</div>
+-->
+</body>
+</html>
+"""
+
+
+def mypage(a, l):
+    print(l)
+    if l:
+        # list is not empty - assume ok... TODO: refactor
+        return mypagetemplate.format(a,
+                                     l[0][0], l[0][1],
+                                     l[1][0], l[1][1],
+                                     l[2][0], l[2][1])
+    else:
+        logger.warning("empty list to mypage()")
+        return mypagetemplate.format(a, '??', '??', '??', '??', '??', '??')
+
 
 '''
 - need date/time with seconds for webpage header (timezone/daylight compensated)
@@ -80,5 +117,11 @@ def getHWplatform():
     else:
         logger.critical("Running on unknown platform. Aborting")
         exit(1)
+
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    logger.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+    print("Uncaught exception - check log")
+
 
 print("XLEISAN - helpers outside scope")

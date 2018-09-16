@@ -19,6 +19,7 @@ python_google_assistant.txt
 
 
 ToDo:
+- document how logging works in PA
 - update this README
     - some info about what this project is about
     - reference to project that inspired this project
