@@ -7,6 +7,7 @@ import json
 import platform
 import logging
 from datetime import datetime
+from datetime import time
 from pytz import timezone
 
 from pprint import pprint
@@ -25,12 +26,15 @@ mypagetemplate = """
     <meta charset="UTF-8">
     <meta http-equiv="refresh" content="10">
     <title>WIP</title>
+    <style>
+        body {{background-color: {0};}}
+    </style>
 </head>
 <body>
-<h1 style="color:black;font-size:400%;">{}</h1>
-<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
-<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
-<h1 style="color:blue;font-size:1200%;">[{}] {} min</h1>
+<h1 style="color:{1};font-size:400%;">{2}</h1>
+<h1 style="color:{3};font-size:1200%;">[{4}] {5} min</h1>
+<h1 style="color:{3};font-size:1200%;">[{6}] {7} min</h1>
+<h1 style="color:{3};font-size:1200%;">[{8}] {9} min</h1>
 <!--
 <p>12:03+2</p>
 <div style="font-size:72">Score</div>
@@ -40,17 +44,28 @@ mypagetemplate = """
 """
 
 
-def mypage(a, l):
+def getcolor(t):
+    d1 = datetime(*t)
+    # print(d1.time())
+    d2 = time(07, 30, 0)
+    d3 = time(22, 00, 0)
+    if d2 < d1.time() < d3:
+        return 'white', 'black', 'blue'
+    else:
+        return 'black', 'DimGrey', 'DimGrey'
+
+
+def mypage(bgcolor, col1, a, col2,  l):
     print(l)
     if l:
         # list is not empty - assume ok... TODO: refactor
-        return mypagetemplate.format(a,
+        return mypagetemplate.format(bgcolor, col1, a, col2,
                                      l[0][0], l[0][1],
                                      l[1][0], l[1][1],
                                      l[2][0], l[2][1])
     else:
         logger.warning("empty list to mypage()")
-        return mypagetemplate.format(a, '??', '??', '??', '??', '??', '??')
+        return mypagetemplate.format(bgcolor, col1, a, col2, '??', '??', '??', '??', '??', '??')
 
 
 '''

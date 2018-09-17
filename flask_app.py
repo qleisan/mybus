@@ -68,7 +68,6 @@ def longlist():
         str = avgang['rtTime'] + ' (' + avgang['time'] + ') ' + avgang['rtDate'] + ' ' + \
               avgang['name'] + ' ' + avgang['track'] + ' ' + avgang['direction']
         logger.info(str)
-        logger.info("is this written to error log also?")
         buf = buf + str + '</BR>'
     return buf
 
@@ -90,7 +89,8 @@ def wip():
         if idx == 2:
             break
     pprint(l)
-    return helpers.mypage(tstr, l)
+    bg, c1, c2 = helpers.getcolor(t)
+    return helpers.mypage(bg, c1, tstr, c2, l)
 ###################################################
 
 
@@ -128,6 +128,7 @@ def get_departure_list(id_str, currentDate, currentTime):
             logger.critical(json.loads(res.text)['DepartureBoard'])
             return []
     else:
+        # 2018-09-16 09:17:54,198 WARNING flask_app 131 - res.status_code = '401'
         logger.warning("res.status_code = '{}'".format(res.status_code))
         token = helpers.fetchtoken(CONSUMER_KEY, CONSUMER_SECRET)
         res = requestcall(id_str, currentDate, currentTime)
