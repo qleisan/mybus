@@ -47,7 +47,7 @@ mypagetemplate = """
 def getcolor(t):
     d1 = datetime(*t)
     # print(d1.time())
-    d2 = time(07, 30, 0)
+    d2 = time(7, 30, 0)
     d3 = time(22, 00, 0)
     if d2 < d1.time() < d3:
         return 'white', 'black', 'blue'
