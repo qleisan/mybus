@@ -19,31 +19,6 @@ API_BASE_URL = 'https://api.vasttrafik.se/bin/rest.exe/v2'
 logger = logging.getLogger(__name__)
 
 
-mypagetemplate = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="10">
-    <title>WIP</title>
-    <style>
-        body {{background-color: {0};}}
-    </style>
-</head>
-<body>
-<h1 style="color:{1};font-size:400%;">{2}</h1>
-<h1 style="color:{3};font-size:1200%;">[{4}] {5} min</h1>
-<h1 style="color:{3};font-size:1200%;">[{6}] {7} min</h1>
-<h1 style="color:{3};font-size:1200%;">[{8}] {9} min</h1>
-<!--
-<p>12:03+2</p>
-<div style="font-size:72">Score</div>
--->
-</body>
-</html>
-"""
-
-
 def getcolor(t):
     d1 = datetime(*t)
     # print(d1.time())
@@ -54,18 +29,6 @@ def getcolor(t):
     else:
         return 'black', 'DimGrey', 'DimGrey'
 
-
-def mypage(bgcolor, col1, a, col2,  l):
-    print(l)
-    if l:
-        # list is not empty - assume ok... TODO: refactor
-        return mypagetemplate.format(bgcolor, col1, a, col2,
-                                     l[0][0], l[0][1],
-                                     l[1][0], l[1][1],
-                                     l[2][0], l[2][1])
-    else:
-        logger.warning("empty list to mypage()")
-        return mypagetemplate.format(bgcolor, col1, a, col2, '??', '??', '??', '??', '??', '??')
 
 
 '''

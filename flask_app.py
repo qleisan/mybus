@@ -10,63 +10,68 @@ from operator import itemgetter
 from flask import Flask, request, make_response, jsonify
 import logging.handlers
 import sys
+import os
 
 from pprint import pprint
+
+
 
 buf = ''
 
 '''
 TODO:
-- finish wip2 so that it delivers same content as wip
-- add support for colors in wip2
+- update ipad to load "/" or "index.html" ("wip2"/"wip" removed)
+- split "python_google_assistant.txt" into notes for "mybus" and (new) "googleAssistant". "myvasttrafik" should be reviewed and removed  
+- review and delete test1.py (has code about ctrl-c, useful?)
+- add unit tests?
+- update README.md
 - add error handling if server fails to respond or "timeout"
+    - this.readyState == 1 && this.status == 0 seems to be normal
+    - 1/502, 2/502, 3/502, 4/502 has been seen... 
+    - running to collect more data. Ignore all other states than 4? Only check if <>200 then. 
 - add printout about URL to open when debugging on PC
 - add "fail counter" (to visualise how well this fix works)
-- refactor/cleanup
 - "Missing rt-data 05:14 Buss 19" investigate if this should be highlighted (different color)
+- update requirement.txt (check that no warnings from github)
+- show busses in both directions
+- verify or remove RPI support
+- run pyCharm inspect code 
 
+- add links to good resources
+https://flask.palletsprojects.com/en/1.0.x/
+http://127.0.0.1:5000/index.html
+http://127.0.0.1:5000/longlist
 '''
-
-
-
 
 BERGSPRANGAREGATAN = '9022014001390001'
 ENGDAHLSGATAN = '9022014002230002'
 
 LOGFILE = 'mybus.log'
 
-app = Flask("My-Local-Traffic-Planner")
+app = Flask(__name__)
 
-
-###################### code for google assistant #######################
-
-def respond(fullfilment):
-    return make_response(jsonify({'fulfillmentText': fullfilment}))
-
-
-@app.route('/departures', methods=['POST'])
-def departures_handler():
-    try:
-        req = request.get_json(silent=True, force=True)
-        print(json.dumps(req))
-
-        location = req.get('queryResult').get('parameters').get('current-location')
-
-        if location == 'home':
-            return respond("Hardcoded test - next bus is 19 in 5 minutes")
-        elif location == 'work':
-            return respond("At work? Well, are you sure it's time to leave already?")
-        else:
-            return respond("I am not sure where " + location + " is.")
-
-    except Exception as e:
-        print(e)
-        return respond("Sorry, an error occurred. Please check the server logs.")
-
-#########################################################################
 
 ###################### Flask #######################
+
+# TODO: review, works but can be improved
+# PA file would be found "/home/qleisan/mysite/mybus/index.html"
 @app.route("/")
+@app.route("/index.html")
+def index():
+    dirname, filename = os.path.split(os.path.abspath(__file__))
+    filelong=os.path.join(dirname,'index.html')
+    return open(filelong).read()
+
+
+@app.route("/index.js")
+def js():
+    dirname, filename = os.path.split(os.path.abspath(__file__))
+    filelong=os.path.join(dirname,'index.js')
+    return open(filelong).read()
+
+
+# TODO: this is not really part of the main application...more for debugging?
+@app.route("/longlist")
 def longlist():
     global buf
     print("----------------------------------")
@@ -85,78 +90,10 @@ def longlist():
         buf = buf + str + '</BR>'
     return buf
 
-@app.route("/wip")
-def wip():
-    print("WIP----------------------------------")
-    t, tstr, l = tempfun()
-    bg, c1, c2 = helpers.getcolor(t)
-    return helpers.mypage(bg, c1, tstr, c2, l)
-
 
 @app.route("/ajax")
 def ajax():
     print("ajax------------------------")
-    t, tstr, l = tempfun()
-    outDict = {}
-    outDict['timetext'] = tstr
-    outDict['table'] = l
-    outDict['colors'] = helpers.getcolor(t)
-    pprint(outDict)
-
-    jsondata=json.dumps(outDict, sort_keys=True)
-    return jsondata
-
-
-temppage = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>WIP2</title>
-</head>
-<body>
-<h1 id="time" style="font-size:400%;">????-??-?? ??:??:??</h1>
-<h1 id="bus1" style="font-size:1200%;">[??] ?? min</h1>
-<h1 id="bus2" style="font-size:1200%;">[??] ?? min</h1>
-<h1 id="bus3" style="font-size:1200%;">[??] ?? min</h1>
- 
-<script>
-function loadDoc() {
-  var xhttp = new XMLHttpRequest();
-  xhttp.onreadystatechange = function() {
-    if (this.readyState == 4 && this.status == 200) {
-      var obj = JSON.parse(this.responseText);
-      document.body.style.backgroundColor = obj.colors[0];
-      document.getElementById("time").innerHTML = obj.timetext + " (ajax)";
-      document.getElementById("time").style.color = obj.colors[1];
-      document.getElementById("bus1").innerHTML = "["+obj.table[0][0]+"] "+obj.table[0][1]+" min";
-      document.getElementById("bus1").style.color = obj.colors[2];
-      document.getElementById("bus2").innerHTML = "["+obj.table[1][0]+"] "+obj.table[1][1]+" min";
-      document.getElementById("bus2").style.color = obj.colors[2];
-      document.getElementById("bus3").innerHTML = "["+obj.table[2][0]+"] "+obj.table[2][1]+" min";
-      document.getElementById("bus3").style.color = obj.colors[2];
-    }
-  };
-  xhttp.open("GET", "ajax", true);
-  xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-  xhttp.send();
-}
-
-loadDoc() //first update asap
-var interval = setInterval("loadDoc()", 10000);
-
-</script>
-</body>
-</html>
-"""
-
-@app.route("/wip2")
-def wip2():
-    return temppage
-###################################################
-
-
-def tempfun():
     t = helpers.getTimeNow_TZD_compensated()
     tstr = helpers.tuple2string(t)
     print(tstr)
@@ -171,7 +108,17 @@ def tempfun():
         if idx == 2:
             break
     #pprint(l)
-    return t, tstr, l
+    outDict = {}
+    outDict['timetext'] = tstr
+    outDict['table'] = l
+    outDict['colors'] = helpers.getcolor(t)
+    pprint(outDict)
+
+    jsondata=json.dumps(outDict, sort_keys=True)
+    return jsondata
+
+
+###################################################
 
 
 def requestcall(id_str, currentDate, currentTime):
@@ -271,15 +218,13 @@ def main():
     if hwplatform == 'pc':
         logger.info("Running on pc")
         # app.run() i a blocking call!
-        app.run(host='0.0.0.0')  # publicly available
-        ## app.run(debug=True)
+        ##app.run(host='0.0.0.0')  # publicly available
+        app.run(debug=True)
 
         # will only get here if app.run() is commented out
         print("Flask server not run now during development")
-        #print(wip())    # print webpage
 
     elif hwplatform == 'rpi':
-        # my RPI doesn't support HTTPS now
         logger.info("Running on rpi")
         app.run()
     else:
