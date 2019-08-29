@@ -1,29 +1,33 @@
 # create a config.py file (not included in repo since a secret...) with
 # CONSUMER_KEY = '<KEY>'
 # CONSUMER_SECRET = '<SECRET>'
-from config import CONSUMER_KEY, CONSUMER_SECRET
 
-import helpers
-import requests
-import json
-from operator import itemgetter
-from flask import Flask, request, make_response, jsonify
+
+from flask import Flask
 import logging.handlers
 import sys
 import os
 
-from pprint import pprint
+from operator import itemgetter
+from config import CONSUMER_KEY, CONSUMER_SECRET
 
+from vasttrafik import *
+import helpers
 
+BERGSPRANGAREGATAN = '9022014001390001'
+ENGDAHLSGATAN = '9022014002230002'
 
-buf = ''
+LOGFILE = 'mybus.log'
 
 '''
 TODO:
-- update ipad to load "/" or "index.html" ("wip2"/"wip" removed)
+- SQUASH COMMITS!!
+- try what happens with datetime object on pythonanywhere, different result??
 - split "python_google_assistant.txt" into notes for "mybus" and (new) "googleAssistant". "myvasttrafik" should be reviewed and removed  
 - review and delete test1.py (has code about ctrl-c, useful?)
-- add unit tests?
+- add unit tests
+- support Ipad3 (safari) fullscreen. http://disq.us/p/1gdzfhm       
+- dokument: use "private mode" to get black bar (this is how it was done before)
 - update README.md
 - add error handling if server fails to respond or "timeout"
     - this.readyState == 1 && this.status == 0 seems to be normal
@@ -36,6 +40,8 @@ TODO:
 - show busses in both directions
 - verify or remove RPI support
 - run pyCharm inspect code 
+- check timediff calculation (has been "-1" midnight?)
+- # PA file would be found "/home/qleisan/mysite/mybus/index.html"
 
 - add links to good resources
 https://flask.palletsprojects.com/en/1.0.x/
@@ -43,34 +49,28 @@ http://127.0.0.1:5000/index.html
 http://127.0.0.1:5000/longlist
 '''
 
-BERGSPRANGAREGATAN = '9022014001390001'
-ENGDAHLSGATAN = '9022014002230002'
-
-LOGFILE = 'mybus.log'
 
 app = Flask(__name__)
 
-
-###################### Flask #######################
-
-# TODO: review, works but can be improved
-# PA file would be found "/home/qleisan/mysite/mybus/index.html"
 @app.route("/")
 @app.route("/index.html")
 def index():
-    dirname, filename = os.path.split(os.path.abspath(__file__))
-    filelong=os.path.join(dirname,'index.html')
-    return open(filelong).read()
+    # "index.html" should be stored in the same directory as this file
+    dir_name, filename = os.path.split(os.path.abspath(__file__))
+    pathname = os.path.join(dir_name,'index.html')
+    return open(pathname).read()
 
 
 @app.route("/index.js")
 def js():
-    dirname, filename = os.path.split(os.path.abspath(__file__))
-    filelong=os.path.join(dirname,'index.js')
-    return open(filelong).read()
+    # "index.js" should be stored in the same directory as this file
+    dir_name, filename = os.path.split(os.path.abspath(__file__))
+    pathname = os.path.join(dir_name,'index.js')
+    return open(pathname).read()
 
 
-# TODO: this is not really part of the main application...more for debugging?
+# TODO: this is not really part of the main application...more for debugging? Make new version with the new "API"
+'''
 @app.route("/longlist")
 def longlist():
     global buf
@@ -79,7 +79,7 @@ def longlist():
     tstr = helpers.tuple2string(t)
     print(tstr)
     (cD, cT) = helpers.string2tuple(tstr)
-    kandidatlista = getmybus(cD, cT)
+    kandidatlista = helpers.getmybus(cD, cT)
 
     buf = '<h1>{}</h1>\n'.format(tstr)
     buf = buf + '<meta http-equiv="refresh" content="10">'
@@ -89,119 +89,55 @@ def longlist():
         logger.info(str)
         buf = buf + str + '</BR>'
     return buf
-
+'''
 
 @app.route("/ajax")
 def ajax():
     print("ajax------------------------")
-    t = helpers.getTimeNow_TZD_compensated()
-    tstr = helpers.tuple2string(t)
-    print(tstr)
-    (cD, cT) = helpers.string2tuple(tstr)
-    kandidatlista = getmybus(cD, cT)
-    # pprint(kandidatlista)
-    l = list()
-    for idx, avgang in enumerate(kandidatlista):
-        print(idx, avgang['rtTime'])
-        result = helpers.getminutesdiff(t, avgang['rtDate'], avgang['rtTime'])
-        l.append((avgang['sname'], result))
+    #TODO: why is this formatted XXXX-XX-XX YY:YY ?? (this is what I want but how safe?)
+    now = datetime.now(timezone('Europe/Stockholm'))
+    print(now)
+    b = a.getDepartures(BERGSPRANGAREGATAN, now)
+    c = a.getDepartures(ENGDAHLSGATAN, now)
+    mylist = b.search("18", "A")
+    mylist.extend(b.search("52", "A"))
+    mylist.extend(c.search("19", "A"))
+    # TODO: dag/tid can be removed and only use datetime object in dict and here
+    mylist.sort(key=itemgetter('dag', 'tid'))
+    pprint(mylist)
+
+    l = []
+    for idx, avgang in enumerate(mylist):
+        #gives -1 as soon as negative.
+        result=int((avgang['y_aware']-now).total_seconds()/60)
+        l.append((avgang['linje'], result))
         if idx == 2:
             break
-    #pprint(l)
-    outDict = {}
-    outDict['timetext'] = tstr
-    outDict['table'] = l
-    outDict['colors'] = helpers.getcolor(t)
-    pprint(outDict)
 
-    jsondata=json.dumps(outDict, sort_keys=True)
-    return jsondata
-
-
-###################################################
-
-
-def requestcall(id_str, currentDate, currentTime):
-    global token
-    headers = {
-        'Authorization': 'Bearer ' + token
+    outDict = {
+        'timetext': str(datetime(now.year,
+                                 now.month,
+                                 now.day,
+                                 now.hour,
+                                 now.minute,
+                                 now.second)),
+        'table': l,
+        'colors': helpers.getcolor(now)
     }
-
-    datetimestr = '&date=' + currentDate.replace('-','') + '&time={}%3A{}'.format(*currentTime.split(':'))
-
-    res = requests.get('https://api.vasttrafik.se/bin/rest.exe/v2/departureBoard?id=' + id_str +
-                       datetimestr + '&format=json', headers=headers)
-    return res
+    pprint(outDict)
+    json_data = json.dumps(outDict, sort_keys=True)
+    return json_data
 
 
-def get_departure_list(id_str, currentDate, currentTime):
-    global token
-    res = requestcall(id_str, currentDate, currentTime)
-    if res.status_code == 200:
-        # pprint(res.text)
-        # TODO: Improve! This is a workaround for observed communication error
-        '''
-        ('{"DepartureBoard":{  '
-         '"noNamespaceSchemaLocation":"http://api.vasttrafik.se/v1/.xsd",  "error":"S1 '
-         'instableCommunication",  "errorText":"The desired connection to the server '
-         'could not be established or was not stable.",  "$":""  }}')	
-        '''
-        # TODO: fixme!
-        if 'Departure' in json.loads(res.text)['DepartureBoard']:
-            return json.loads(res.text)['DepartureBoard']['Departure']
-        else:
-            pprint(json.loads(res.text)['DepartureBoard'])
-            logger.critical("SERVER ERROR FOUND (DEBUG)")
-            logger.critical(json.loads(res.text)['DepartureBoard'])
-            return []
-    else:
-        # 2018-09-16 09:17:54,198 WARNING flask_app 131 - res.status_code = '401'
-        logger.warning("res.status_code = '{}'".format(res.status_code))
-        token = helpers.fetchtoken(CONSUMER_KEY, CONSUMER_SECRET)
-        res = requestcall(id_str, currentDate, currentTime)
-        if res.status_code == 200:
-            logger.info("worked this time")
-            # TODO: this call might cause the same problem as above (but less frequent)
-            return json.loads(res.text)['DepartureBoard']['Departure']
-        else:
-            raise Exception('Error: ' + str(res.status_code) + '|' + str(res.content))
-
-
-def getmybus(currentDate, currentTime):
-    kandidatlista = []
-    lista = get_departure_list(BERGSPRANGAREGATAN, currentDate, currentTime)
-    for avgang in lista:
-        if (avgang['sname'] == '18' or avgang['sname'] == '52') and avgang['track'] == 'A':
-            kandidatlista.append(avgang)
-
-    lista = get_departure_list(ENGDAHLSGATAN, currentDate, currentTime)
-    for avgang in lista:
-        if avgang['sname'] == '19' and avgang['track'] == 'A':
-            kandidatlista.append(avgang)
-
-    # with open('kandidatlista.json', 'w') as outfile:
-    #     json.dump(kandidatlista, outfile)
-
-    missing = object()
-    for avgang in kandidatlista:
-        tid = avgang.get('rtTime', missing)
-        if tid is missing:
-            print('Missing rt-data ' + avgang['time'], avgang['name'])
-            avgang['rtTime'] = avgang['time']
-            avgang['rtDate'] = avgang['date']
-
-    kandidatlista.sort(key=itemgetter('rtDate', 'rtTime'))
-    return kandidatlista
-
-
-
-
-def main():
+# debugging info
+print("__name__ = {}".format(__name__))
+#if __name__ == '__main__':
+if True:
     logging.basicConfig(filename=LOGFILE,
                         level=logging.DEBUG,
                         format="%(asctime)s %(levelname)s %(module)s %(lineno)d - %(message)s",
                         filemode='w')
-    global logger   # todo: consider removing global and using getlogger() in every function
+
     logger = logging.getLogger()
     print("Logging to file '{}'".format(LOGFILE))
     # make sure unhandled exceptions are logged
@@ -209,11 +145,9 @@ def main():
 
     logger.setLevel(logging.INFO)
     logger.info("Application staring")
-    hwplatform = helpers.getHWplatform()
 
-    global token # todo: consider refactoring
-    token = helpers.fetchtoken(CONSUMER_KEY, CONSUMER_SECRET)
-    logger.info("Getting token: {}".format(token))
+    hwplatform = helpers.getHWplatform()
+    a = Server(CONSUMER_KEY, CONSUMER_SECRET)
 
     if hwplatform == 'pc':
         logger.info("Running on pc")
@@ -230,10 +164,3 @@ def main():
     else:
         logger.info("Running on cloud")
         # cloud starts flask automatically
-
-# debugging info
-print("XLEISAN - outer scope")
-print("__name__ = {}".format(__name__))
-# if __name__ == '__main__':
-if True:
-    main()
