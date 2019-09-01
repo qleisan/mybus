@@ -13,6 +13,10 @@ function loadDoc() {
       document.getElementById("bus2").style.color = obj.colors[2];
       document.getElementById("bus3").innerHTML = "["+obj.table[2][0]+"] "+obj.table[2][1]+" min";
       document.getElementById("bus3").style.color = obj.colors[2];
+      document.getElementById("bus4").innerHTML = "["+obj.table[3][0]+"] "+obj.table[3][1]+" min";
+      document.getElementById("bus4").style.color = obj.colors[2];
+      document.getElementById("bus5").innerHTML = "["+obj.table[4][0]+"] "+obj.table[4][1]+" min";
+      document.getElementById("bus5").style.color = obj.colors[2];
     } else if (this.status == 200)
     {
       // discard

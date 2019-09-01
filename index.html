@@ -4,14 +4,63 @@
     <meta charset="UTF-8">
     <title>mybus</title>
 </head>
-<body>
-<h1 id="time" style="font-size:400%;">????-??-?? ??:??:??</h1>
-<p id="err">Error counter = 0</p>
-<!-- 1200% in org code -->
-<h1 id="bus1" style="font-size:1000%;">[??] ?? min</h1>
-<h1 id="bus2" style="font-size:1000%;">[??] ?? min</h1>
-<h1 id="bus3" style="font-size:1000%;">[??] ?? min</h1>
 
+<style>
+
+.entirepage {
+    position:fixed;
+    padding:0;
+    margin:0;
+    top:0;
+    left:0;
+    width: 100%;
+    height: 100%;
+    /* background:rgba(255,255,0,0.5); */
+}
+
+.header {
+  height: 15%;
+  width: 100%;
+  /* background: pink; */
+
+}
+
+.mainbody {
+  /* width: 800px;
+  height:800px; */
+  height: 80%;
+  width: 100%;
+  /* background: yellow;
+  border-style: solid;
+  border-color: grey; */
+}
+
+.onerow {
+  float: left;
+  color: red;
+  font-size:800%;
+  height: 20%;
+  width: 100%;
+  /* background: red;
+  border-style: solid;
+  border-color: black; */
+}
+</style>
+
+<body>
+<div class="entirepage">
+    <div class="header">
+        <div id="time" style="font-size:400%;">????-??-?? ??:??:??</div>
+        <div id="err">Error counter = 0</div>
+    </div>
+    <div class="mainbody">
+        <div id="bus1" class="onerow">[??] ?? min</div>
+        <div id="bus2" class="onerow">[??] ?? min</div>
+        <div id="bus3" class="onerow">[??] ?? min</div>
+        <div id="bus4" class="onerow">[??] ?? min</div>
+        <div id="bus5" class="onerow">[??] ?? min</div>
+    </div>
+</div>
 
 <script type="text/javascript" src="index.js"></script>
 

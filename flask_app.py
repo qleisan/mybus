@@ -21,7 +21,6 @@ LOGFILE = 'mybus.log'
 
 '''
 TODO:
-- SQUASH COMMITS!!
 - try what happens with datetime object on pythonanywhere, different result??
 - split "python_google_assistant.txt" into notes for "mybus" and (new) "googleAssistant". "myvasttrafik" should be reviewed and removed  
 - review and delete test1.py (has code about ctrl-c, useful?)
@@ -111,7 +110,7 @@ def ajax():
         #gives -1 as soon as negative.
         result=int((avgang['y_aware']-now).total_seconds()/60)
         l.append((avgang['linje'], result))
-        if idx == 2:
+        if idx == 4:
             break
 
     outDict = {
